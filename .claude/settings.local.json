@@ -2,7 +2,23 @@
   "permissions": {
     "allow": [
       "Bash(claude mcp:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "mcp__appwrite__databases_create",
+      "mcp__appwrite__databases_list",
+      "mcp__appwrite__databases_create_collection",
+      "mcp__appwrite__databases_create_string_attribute",
+      "mcp__appwrite__databases_create_enum_attribute",
+      "mcp__appwrite__databases_create_datetime_attribute",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:appwrite.io)",
+      "Bash(compgen:*)",
+      "mcp__appwrite__databases_list_collections",
+      "mcp__appwrite__databases_get_attribute",
+      "mcp__appwrite__databases_update_string_attribute",
+      "mcp__appwrite__databases_list_attributes",
+      "mcp__appwrite__databases_delete_attribute",
+      "mcp__ide__getDiagnostics",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

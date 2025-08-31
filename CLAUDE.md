@@ -9,6 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Start**: `npm start` - Starts production server
 - **Lint**: `npm run lint` - Runs ESLint for code quality checks
 
+# Befor Runing Code
+
+dont run "npm run dev" after you modify code, it's probably already running
+
 ## Architecture Overview
 
 This is a Next.js 15 application using the App Router architecture with the following key technologies:
