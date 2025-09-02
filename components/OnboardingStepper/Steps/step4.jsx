@@ -36,7 +36,7 @@ const skillsData = {
 }
 
 const Step4 = () => {
-  const { register, watch, setValue, formState: { errors } } = useFormContext()
+  const { register, watch, setValue, formState: { errors }, getValues } = useFormContext()
   
   // Watch platform-specific skill arrays
   const youtubeSkills = watch('youtubeSkills') || []
@@ -70,18 +70,78 @@ const Step4 = () => {
     return currentIndex > previousIndex ? 1 : -1 // 1 for right, -1 for left
   }
 
-  // Sync with form state when component mounts or form values change
+  // Initialize form fields and sync with form state
+  useEffect(() => {
+    console.log("Step4: Initializing form fields...")
+    
+    // Explicitly register all form fields first
+    register('youtubeSkills')
+    register('instagramSkills')
+    register('tiktokSkills')
+    register('generalSkills')
+
+    // Get current values or defaults
+    const currentYoutubeSkills = youtubeSkills || []
+    const currentInstagramSkills = instagramSkills || []
+    const currentTiktokSkills = tiktokSkills || []
+    const currentGeneralSkills = generalSkills || []
+
+    // Set form values to ensure React Hook Form knows about these fields
+    setValue('youtubeSkills', currentYoutubeSkills, { shouldValidate: false, shouldDirty: false })
+    setValue('instagramSkills', currentInstagramSkills, { shouldValidate: false, shouldDirty: false })
+    setValue('tiktokSkills', currentTiktokSkills, { shouldValidate: false, shouldDirty: false })
+    setValue('generalSkills', currentGeneralSkills, { shouldValidate: false, shouldDirty: false })
+
+    // Update local state to match form values
+    setPlatformSkills({
+      youtube: currentYoutubeSkills,
+      instagram: currentInstagramSkills,
+      tiktok: currentTiktokSkills,
+      general: currentGeneralSkills
+    })
+
+    console.log("Step4: Explicitly registered and initialized form values:", {
+      youtube: currentYoutubeSkills,
+      instagram: currentInstagramSkills,
+      tiktok: currentTiktokSkills,
+      general: currentGeneralSkills
+    })
+
+    // Verify the values were actually set
+    setTimeout(() => {
+      const allValues = getValues()
+      console.log("Step4: Verification - all form values after init:", {
+        youtubeSkills: allValues.youtubeSkills,
+        instagramSkills: allValues.instagramSkills,
+        tiktokSkills: allValues.tiktokSkills,
+        generalSkills: allValues.generalSkills
+      })
+    }, 100)
+  }, []) // Empty dependency array to run only once on mount
+
+  // Sync local state when form values change externally
   useEffect(() => {
     setPlatformSkills({
-      youtube: youtubeSkills,
-      instagram: instagramSkills,
-      tiktok: tiktokSkills,
-      general: generalSkills
+      youtube: youtubeSkills || [],
+      instagram: instagramSkills || [],
+      tiktok: tiktokSkills || [],
+      general: generalSkills || []
     })
   }, [youtubeSkills, instagramSkills, tiktokSkills, generalSkills])
 
+  // Debug: Log form values when they change
+  useEffect(() => {
+    const allFormValues = getValues()
+    console.log("Step4: Form values changed:", {
+      youtubeSkills: allFormValues.youtubeSkills,
+      instagramSkills: allFormValues.instagramSkills,
+      tiktokSkills: allFormValues.tiktokSkills,
+      generalSkills: allFormValues.generalSkills
+    })
+  }, [youtubeSkills, instagramSkills, tiktokSkills, generalSkills, getValues])
+
   const handleSkillToggle = (skill, platform) => {
-    const currentPlatformSkills = platformSkills[platform]
+    const currentPlatformSkills = platformSkills[platform] || []
     const updatedPlatformSkills = currentPlatformSkills.includes(skill)
       ? currentPlatformSkills.filter(s => s !== skill)
       : [...currentPlatformSkills, skill]
@@ -91,35 +151,50 @@ const Step4 = () => {
       [platform]: updatedPlatformSkills
     }
     
+    // Update local state first
     setPlatformSkills(updatedAllSkills)
     
-    // Update the specific form field
+    // Update the specific form field - this is crucial for React Hook Form
     const fieldMap = {
       youtube: 'youtubeSkills',
       instagram: 'instagramSkills',
       tiktok: 'tiktokSkills',
       general: 'generalSkills'
     }
-    setValue(fieldMap[platform], updatedPlatformSkills, { shouldValidate: true })
+    
+    setValue(fieldMap[platform], updatedPlatformSkills, { 
+      shouldValidate: true, 
+      shouldDirty: true,
+      shouldTouch: true 
+    })
+
+    console.log(`Step4: Updated ${platform} skills:`, updatedPlatformSkills)
+    
+    // Verify the setValue actually worked
+    setTimeout(() => {
+      const currentFormValues = getValues()
+      console.log(`Step4: Verification - ${fieldMap[platform]} in form:`, currentFormValues[fieldMap[platform]])
+    }, 50)
   }
 
   const handleAddCustomSkill = () => {
     if (customSkill.trim()) {
       // Check if skill already exists in any platform
       const allSkills = [
-        ...platformSkills.youtube,
-        ...platformSkills.instagram,
-        ...platformSkills.tiktok,
-        ...platformSkills.general
+        ...(platformSkills.youtube || []),
+        ...(platformSkills.instagram || []),
+        ...(platformSkills.tiktok || []),
+        ...(platformSkills.general || [])
       ]
       
       if (!allSkills.includes(customSkill.trim())) {
-        const updatedPlatformSkills = [...platformSkills[activeTab], customSkill.trim()]
+        const updatedPlatformSkills = [...(platformSkills[activeTab] || []), customSkill.trim()]
         const updatedAllSkills = {
           ...platformSkills,
           [activeTab]: updatedPlatformSkills
         }
         
+        // Update local state first
         setPlatformSkills(updatedAllSkills)
         
         // Update the form field for current platform
@@ -129,19 +204,26 @@ const Step4 = () => {
           tiktok: 'tiktokSkills',
           general: 'generalSkills'
         }
-        setValue(fieldMap[activeTab], updatedPlatformSkills, { shouldValidate: true })
+        setValue(fieldMap[activeTab], updatedPlatformSkills, { 
+          shouldValidate: true, 
+          shouldDirty: true,
+          shouldTouch: true 
+        })
+
+        console.log(`Step4: Added custom skill to ${activeTab}:`, customSkill.trim())
         setCustomSkill('')
       }
     }
   }
 
   const handleRemoveSkill = (skill, platform) => {
-    const updatedPlatformSkills = platformSkills[platform].filter(s => s !== skill)
+    const updatedPlatformSkills = (platformSkills[platform] || []).filter(s => s !== skill)
     const updatedAllSkills = {
       ...platformSkills,
       [platform]: updatedPlatformSkills
     }
     
+    // Update local state first
     setPlatformSkills(updatedAllSkills)
     
     // Update the specific form field
@@ -151,7 +233,13 @@ const Step4 = () => {
       tiktok: 'tiktokSkills', 
       general: 'generalSkills'
     }
-    setValue(fieldMap[platform], updatedPlatformSkills, { shouldValidate: true })
+    setValue(fieldMap[platform], updatedPlatformSkills, { 
+      shouldValidate: true, 
+      shouldDirty: true,
+      shouldTouch: true 
+    })
+
+    console.log(`Step4: Removed skill from ${platform}:`, skill)
   }
 
   // Get all selected skills across platforms for display
@@ -185,8 +273,8 @@ const Step4 = () => {
         <p className="text-sm md:text-base text-muted-foreground">Choose the services you can offer to clients</p>
       </div>
       
-      <Card className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <Card className="p-4 md:p-6 space-y-4 md:space-y-6 h-[600px] overflow-hidden flex flex-col">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full flex-1 flex flex-col">
           {/* Custom TabsList with sliding background */}
           <div className="relative bg-muted text-muted-foreground inline-flex h-12 w-full items-center justify-center rounded-lg p-1">
             {/* Sliding background indicator */}
@@ -223,13 +311,13 @@ const Step4 = () => {
                 {tab === 'instagram' && <Instagram className="w-3 h-3 sm:w-4 sm:h-4" />}
                 {tab === 'tiktok' && <Music className="w-3 h-3 sm:w-4 sm:h-4" />}
                 {tab === 'general' && <Plus className="w-3 h-3 sm:w-4 sm:h-4" />}
-                <span className="hidden xs:inline">
+                <span className="hidden md:inline">
                   {tab === 'youtube' && 'YouTube'}
                   {tab === 'instagram' && 'Instagram'}
                   {tab === 'tiktok' && 'TikTok'}
                   {tab === 'general' && 'General'}
                 </span>
-                <span className="xs:hidden">
+                <span className="md:hidden">
                   {tab === 'youtube' && 'YT'}
                   {tab === 'instagram' && 'IG'}
                   {tab === 'tiktok' && 'TT'}
@@ -239,7 +327,7 @@ const Step4 = () => {
             ))}
           </div>
 
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden flex-1 flex flex-col">
             <AnimatePresence mode="wait">
               {Object.entries(skillsData).map(([platform, skills]) => (
                 activeTab === platform && (
@@ -262,7 +350,7 @@ const Step4 = () => {
                       ease: [0.4, 0, 0.2, 1],
                       duration: 0.3
                     }}
-                    className="space-y-4"
+                    className="space-y-4 flex-1 flex flex-col"
                   >
                     <motion.div 
                       className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3"
@@ -357,96 +445,40 @@ const Step4 = () => {
         </motion.div>
 
         {/* Selected Skills Display */}
-        <div className="space-y-3 min-h-[120px]">
-          <AnimatePresence>
-            {getTotalSkillsCount() > 0 && (
-              <motion.div 
-                className="space-y-3"
-                initial={{ opacity: 0 }}
-                animate={{ 
-                  opacity: 1,
-                  transition: {
-                    type: "spring",
-                    damping: 25,
-                    stiffness: 300
-                  }
-                }}
-                exit={{ 
-                  opacity: 0,
-                  transition: { duration: 0.2 }
-                }}
-              >
-                <Label className="text-sm font-medium">Selected Skills ({getTotalSkillsCount()})</Label>
-                <motion.div 
-                  className="flex flex-wrap gap-2"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: {
-                      opacity: 1,
-                      transition: {
-                        staggerChildren: 0.03
-                      }
-                    }
-                  }}
-                >
-                  <AnimatePresence>
-                    {getAllSelectedSkills().map(({ skill, platform }) => (
-                      <motion.div
-                        key={`${platform}-${skill}`}
-                        variants={{
-                          hidden: { 
-                            opacity: 0, 
-                            scale: 0.8
-                          },
-                          visible: { 
-                            opacity: 1, 
-                            scale: 1,
-                            transition: {
-                              type: "spring",
-                              damping: 20,
-                              stiffness: 400
-                            }
-                          }
-                        }}
-                        exit={{
-                          opacity: 0,
-                          scale: 0.8,
-                          transition: { duration: 0.15 }
-                        }}
-                        layout
-                      >
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1 px-3 py-1 transition-all duration-200 hover:shadow-sm"
-                        >
-                          <span className="text-xs text-muted-foreground mr-1">{platform}:</span>
-                          {skill}
-                          <motion.button
-                            type="button"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => handleRemoveSkill(skill, platform.toLowerCase() === 'tiktok' ? 'tiktok' : platform.toLowerCase())}
-                            className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors duration-200"
-                          >
-                            <X className="w-3 h-3" />
-                          </motion.button>
-                        </Badge>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              </motion.div>
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">
+            Selected Skills ({getTotalSkillsCount()})
+          </Label>
+          <div className="w-full h-[120px] overflow-y-auto border rounded-lg p-3 bg-muted/20">
+            {getTotalSkillsCount() > 0 ? (
+              <div className="flex flex-wrap gap-2 w-full">
+                {getAllSelectedSkills().map(({ skill, platform }) => (
+                  <Badge
+                    key={`${platform}-${skill}`}
+                    variant="secondary"
+                    className="flex items-center gap-1 px-3 py-1 transition-all duration-200 hover:shadow-sm whitespace-nowrap"
+                  >
+                    <span className="text-xs text-muted-foreground mr-1">{platform}:</span>
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill, platform.toLowerCase() === 'tiktok' ? 'tiktok' : platform.toLowerCase())}
+                      className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5 transition-colors duration-200"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                No skills selected yet. Choose from the options above or add custom skills.
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
-        {/* Hidden inputs for form registration */}
-        <input type="hidden" {...register('youtubeSkills')} />
-        <input type="hidden" {...register('instagramSkills')} />
-        <input type="hidden" {...register('tiktokSkills')} />
-        <input type="hidden" {...register('generalSkills')} />
+        {/* Register form fields - these are handled through setValue in useEffect */}
 
         {(errors.youtubeSkills || errors.instagramSkills || errors.tiktokSkills || errors.generalSkills) && (
           <p className="text-destructive text-sm">

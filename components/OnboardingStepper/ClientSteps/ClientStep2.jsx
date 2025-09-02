@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { User, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const Step3 = () => {
+const ClientStep2 = () => {
   const { register, watch, setValue, formState: { errors } } = useFormContext()
   const [photoPreview, setPhotoPreview] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -211,4 +211,4 @@ const Step3 = () => {
   )
 }
 
-export default Step3
+export default ClientStep2

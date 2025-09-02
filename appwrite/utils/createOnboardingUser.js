@@ -10,12 +10,11 @@ function serializeAppwriteDocument(doc) {
   
   return {
     $id: doc.$id,
+    userid: doc.userid,
     userType: doc.userType,
+    // Freelancer fields
     platforms: doc.platforms || [],
     contentTypes: doc.contentTypes || [],
-    firstName: doc.firstName || "",
-    lastName: doc.lastName || "",
-    profilePhoto: doc.profilePhoto || "",
     youtubeSkills: doc.youtubeSkills || [],
     instagramSkills: doc.instagramSkills || [],
     tiktokSkills: doc.tiktokSkills || [],
@@ -26,6 +25,19 @@ function serializeAppwriteDocument(doc) {
     degreeTitle: doc.degreeTitle || "",
     studyYears: doc.studyYears || "",
     certifications: doc.certifications || [],
+    // Client fields
+    servicesNeeded: doc.servicesNeeded || [],
+    contentType: doc.contentType || "",
+    timeline: doc.timeline || "",
+    platformFocus: doc.platformFocus || [],
+    budgetRange: doc.budgetRange || "",
+    projectGoals: doc.projectGoals || [],
+    communicationStyle: doc.communicationStyle || "",
+    additionalRequirements: doc.additionalRequirements || "",
+    // Common fields
+    firstName: doc.firstName || "",
+    lastName: doc.lastName || "",
+    profilePhoto: doc.profilePhoto || "",
     status: doc.status,
     completedAt: doc.completedAt,
     $createdAt: doc.$createdAt,
@@ -51,7 +63,9 @@ export const createOnboardingUser = async (data) => {
       TABLE_ID,
       ID.unique(),
       {
+        userid: data.userid,
         userType: data.userType,
+        // Freelancer fields
         platforms: data.platforms || [],
         contentTypes: data.contentTypes || [],
         youtubeSkills: data.youtubeSkills || [],
@@ -64,6 +78,19 @@ export const createOnboardingUser = async (data) => {
         degreeTitle: data.degreeTitle || "",
         studyYears: data.studyYears || "",
         certifications: data.certifications || [],
+        // Client fields
+        servicesNeeded: data.servicesNeeded || [],
+        contentType: data.contentType || "",
+        timeline: data.timeline || "",
+        platformFocus: data.platformFocus || [],
+        budgetRange: data.budgetRange || "",
+        projectGoals: data.projectGoals || [],
+        communicationStyle: data.communicationStyle || "",
+        additionalRequirements: data.additionalRequirements || "",
+        // Common fields
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        profilePhoto: data.profilePhoto || "",
         status: 'pending',
         completedAt: null,
       }
@@ -90,6 +117,9 @@ export const updateOnboardingUser = async (rowId, data) => {
   }
 
   try {
+    console.log("updateOnboardingUser: Received data for update:", data)
+    console.log("updateOnboardingUser: rowId:", rowId)
+    
     // Note: Using legacy databases API as MCP functions haven't updated to TablesDB yet
     // In new TablesDB API, this would be: databases.updateRow()
     const row = await databases.updateDocument(
@@ -99,6 +129,8 @@ export const updateOnboardingUser = async (rowId, data) => {
       data
     )
     
+    console.log("updateOnboardingUser: Successfully updated document:", row)
+    
     return {
       success: true,
       data: serializeAppwriteDocument(row),
@@ -106,9 +138,77 @@ export const updateOnboardingUser = async (rowId, data) => {
     }
   } catch (error) {
     console.error('Error updating onboarding user:', error)
+    console.error('Data that failed to update:', data)
     return {
       success: false,
       error: error.message || 'Failed to update onboarding row'
+    }
+  }
+}
+
+export const getOnboardingUser = async (rowId) => {
+  const {databases} = await createSessionClient()
+  if (!databases) {
+    return { success: false, error: 'Failed to initialize Appwrite client' }
+  }
+
+  try {
+    const row = await databases.getDocument(
+      process.env.DATABASE_ID,
+      TABLE_ID,
+      rowId
+    )
+    
+    return {
+      success: true,
+      data: serializeAppwriteDocument(row),
+      message: 'Onboarding row retrieved successfully'
+    }
+  } catch (error) {
+    console.error('Error getting onboarding user:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to get onboarding row'
+    }
+  }
+}
+
+export const getOnboardingUserByUserId = async (userid) => {
+  const {databases} = await createSessionClient()
+  if (!databases) {
+    return { success: false, error: 'Failed to initialize Appwrite client' }
+  }
+
+  try {
+    const { Query } = await import('node-appwrite')
+    
+    const result = await databases.listDocuments(
+      process.env.DATABASE_ID,
+      TABLE_ID,
+      [
+        Query.equal('userid', userid),
+        Query.limit(1)
+      ]
+    )
+    
+    if (result.documents.length > 0) {
+      return {
+        success: true,
+        data: serializeAppwriteDocument(result.documents[0]),
+        message: 'Existing onboarding record found for user'
+      }
+    } else {
+      return {
+        success: false,
+        error: 'No onboarding record found for this user',
+        data: null
+      }
+    }
+  } catch (error) {
+    console.error('Error getting onboarding user by userid:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to get onboarding row by userid'
     }
   }
 }

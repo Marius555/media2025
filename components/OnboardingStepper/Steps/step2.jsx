@@ -1,8 +1,7 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -20,15 +19,21 @@ const Step2 = () => {
   const selectedContentTypes = watch('contentTypes') || []
   
   // For UI display, include 'other' and 'other-content' when selected
-  const displayPlatforms = [...selectedPlatforms]
-  if (isOtherPlatformSelected && !displayPlatforms.includes('other')) {
-    displayPlatforms.push('other')
-  }
+  const displayPlatforms = useMemo(() => {
+    const platforms = [...selectedPlatforms]
+    if (isOtherPlatformSelected && !platforms.includes('other')) {
+      platforms.push('other')
+    }
+    return platforms
+  }, [selectedPlatforms, isOtherPlatformSelected])
   
-  const displayContentTypes = [...selectedContentTypes]
-  if (isOtherContentSelected && !displayContentTypes.includes('other-content')) {
-    displayContentTypes.push('other-content')
-  }
+  const displayContentTypes = useMemo(() => {
+    const contentTypes = [...selectedContentTypes]
+    if (isOtherContentSelected && !contentTypes.includes('other-content')) {
+      contentTypes.push('other-content')
+    }
+    return contentTypes
+  }, [selectedContentTypes, isOtherContentSelected])
 
   const socialPlatforms = [
     { id: 'youtube', label: 'YouTube', icon: Youtube },
@@ -129,26 +134,33 @@ const Step2 = () => {
               const isChecked = displayPlatforms.includes(platform.id)
               
               return (
-                <Card key={platform.id} className={cn(
-                  "transition-all duration-200 hover:shadow-md cursor-pointer p-4 relative",
-                  isChecked 
-                    ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
-                    : "hover:border-gray-300 shadow-sm"
-                )}>
-                  <Label 
-                    htmlFor={platform.id}
-                    className="cursor-pointer flex items-center space-x-3 w-100% h-100%"
-                  >
-                    <Checkbox
+                <Card 
+                  key={platform.id} 
+                  className={cn(
+                    "transition-all duration-200 hover:shadow-md cursor-pointer p-4 relative",
+                    isChecked 
+                      ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
+                      : "hover:border-gray-300 shadow-sm"
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handlePlatformChange(platform.id, !isChecked)
+                  }}
+                >
+                  <div className="flex items-center space-x-3 w-full h-full">
+                    <input
+                      type="checkbox"
                       id={platform.id}
                       checked={isChecked}
-                      onCheckedChange={(checked) => handlePlatformChange(platform.id, checked)}
+                      onChange={() => {}} // Controlled by card click
+                      className="w-4 h-4 rounded border-2 border-input bg-background text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 pointer-events-none"
                     />
                     <div className="flex items-center space-x-2">
                       <Icon className="w-5 h-5 text-primary" />
                       <span className="font-medium">{platform.label}</span>
                     </div>
-                  </Label>
+                  </div>
                 </Card>
               )
             })}
@@ -179,23 +191,30 @@ const Step2 = () => {
               const isChecked = displayContentTypes.includes(contentType.id)
               
               return (
-                <Card key={contentType.id} className={cn(
-                  "transition-all duration-200 hover:shadow-md cursor-pointer p-4 relative",
-                  isChecked 
-                    ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
-                    : "hover:border-gray-300 shadow-sm"
-                )}>
-                  <Label 
-                    htmlFor={contentType.id}
-                    className="cursor-pointer flex items-center space-x-3"
-                  >
-                    <Checkbox
+                <Card 
+                  key={contentType.id} 
+                  className={cn(
+                    "transition-all duration-200 hover:shadow-md cursor-pointer p-4 relative",
+                    isChecked 
+                      ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
+                      : "hover:border-gray-300 shadow-sm"
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleContentTypeChange(contentType.id, !isChecked)
+                  }}
+                >
+                  <div className="flex items-center space-x-3 w-full h-full">
+                    <input
+                      type="checkbox"
                       id={contentType.id}
                       checked={isChecked}
-                      onCheckedChange={(checked) => handleContentTypeChange(contentType.id, checked)}
+                      onChange={() => {}} // Controlled by card click
+                      className="w-4 h-4 rounded border-2 border-input bg-background text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 pointer-events-none"
                     />
                     <span className="font-medium">{contentType.label}</span>
-                  </Label>
+                  </div>
                 </Card>
               )
             })}

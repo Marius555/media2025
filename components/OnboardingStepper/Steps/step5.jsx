@@ -9,10 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { GraduationCap, School, Award, Plus, X, Calendar as CalendarIcon, Check } from 'lucide-react'
-import { format } from 'date-fns'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { GraduationCap, School, Award, Plus, X, Calendar as CalendarIcon, Check, Info, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const educationLevels = [
@@ -38,16 +36,22 @@ const Step5 = () => {
   
   const [newCertification, setNewCertification] = useState('')
   const [showAdditionalFields, setShowAdditionalFields] = useState(false)
-  const [startDate, setStartDate] = useState()
-  const [endDate, setEndDate] = useState()
-  const [isPresent, setIsPresent] = useState(false)
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  
+  // Initialize with default years
+  const currentYear = new Date().getFullYear()
+  const [startYear, setStartYear] = useState((currentYear - 4).toString())
+  const [endYear, setEndYear] = useState(currentYear.toString())
 
   // Show additional fields for formal education levels
   useEffect(() => {
     const formalEducation = ['associate', 'bachelor', 'master', 'doctorate']
     setShowAdditionalFields(formalEducation.includes(educationLevel))
   }, [educationLevel])
+
+  // Initialize form field with default years
+  useEffect(() => {
+    updateStudyYearsField(startYear, endYear)
+  }, []) // Only run once on mount
 
   const handleEducationLevelChange = (value) => {
     setValue('educationLevel', value, { shouldValidate: true })
@@ -73,51 +77,45 @@ const Step5 = () => {
     }
   }
 
-  // Date range picker handlers
-  const handleDateRangeChange = (range) => {
-    if (range?.from) {
-      setStartDate(range.from)
-      if (range.to) {
-        setEndDate(range.to)
-        setIsPresent(false)
-      }
-      updateStudyYearsField(range.from, range.to, false)
+  // Year selection handlers
+  const years = Array.from({ length: currentYear - 1960 + 1 }, (_, i) => currentYear - i)
+
+  const handleStartYearChange = (year) => {
+    setStartYear(year)
+    // Clear end year if it's before the new start year
+    if (endYear && parseInt(endYear) < parseInt(year)) {
+      setEndYear('')
     }
+    updateStudyYearsField(year, endYear)
   }
 
-  const handlePresentToggle = () => {
-    const newIsPresent = !isPresent
-    setIsPresent(newIsPresent)
-    if (newIsPresent) {
-      setEndDate(undefined)
-    }
-    updateStudyYearsField(startDate, newIsPresent ? undefined : endDate, newIsPresent)
+  const handleEndYearChange = (year) => {
+    setEndYear(year)
+    updateStudyYearsField(startYear, year)
   }
 
-  const updateStudyYearsField = (start, end, present) => {
+  const updateStudyYearsField = (start, end) => {
     if (!start) {
       setValue('studyYears', '', { shouldValidate: true })
       return
     }
     
-    const startFormatted = format(start, 'MMM yyyy')
-    let endFormatted = 'Present'
-    
-    if (!present && end) {
-      endFormatted = format(end, 'MMM yyyy')
+    let dateRange = start
+    if (end && end !== start) {
+      dateRange = `${start} - ${end}`
     }
     
-    const dateRange = `${startFormatted} - ${endFormatted}`
     setValue('studyYears', dateRange, { shouldValidate: true })
   }
 
-  const getDateRangeDisplayText = () => {
-    if (!startDate) return 'Select study period'
-    
-    const startFormatted = format(startDate, 'MMM yyyy')
-    if (isPresent) return `${startFormatted} - Present`
-    if (endDate) return `${startFormatted} - ${format(endDate, 'MMM yyyy')}`
-    return `${startFormatted} - Select end date`
+  const getYearRangeDisplayText = () => {
+    if (endYear && endYear !== startYear) return `${startYear} - ${endYear}`
+    return startYear
+  }
+
+  const getAvailableEndYears = () => {
+    if (!startYear) return []
+    return years.filter(year => year >= parseInt(startYear))
   }
 
   const requiresInstitution = () => {
@@ -231,51 +229,47 @@ const Step5 = () => {
                   transition={{ delay: 0.2 }}
                 >
                   <Label>Study Period</Label>
-                  <div className="space-y-2">
-                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground",
-                            errors.studyYears && "border-destructive"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {getDateRangeDisplayText()}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <div className="p-4 space-y-4">
-                          <Calendar
-                            mode="range"
-                            captionLayout="dropdown"
-                            selected={{ from: startDate, to: endDate }}
-                            onSelect={handleDateRangeChange}
-                            defaultMonth={startDate || new Date(2020, 0)}
-                            startMonth={new Date(1960, 0)}
-                            endMonth={new Date()}
-                            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                            hideNavigation={true}
-                          />
-                          <div className="border-t pt-4">
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                type="button"
-                                variant={isPresent ? "default" : "outline"}
-                                size="sm"
-                                onClick={handlePresentToggle}
-                                className="flex items-center gap-2"
-                              >
-                                {isPresent && <Check className="w-3 h-3" />}
-                                Currently studying
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                  <div className="space-y-4">
+                    {/* Year selection - inline */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Start Year */}
+                      <Select value={startYear} onValueChange={handleStartYearChange}>
+                        <SelectTrigger className={cn(
+                          "w-full",
+                          errors.studyYears && "border-destructive"
+                        )}>
+                          <SelectValue placeholder="Start Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* End Year */}
+                      <Select 
+                        value={endYear} 
+                        onValueChange={handleEndYearChange}
+                      >
+                        <SelectTrigger className={cn(
+                          "w-full",
+                          errors.studyYears && "border-destructive"
+                        )}>
+                          <SelectValue placeholder="End Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableEndYears().map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {errors.studyYears && (
                       <p className="text-destructive text-sm">
                         {errors.studyYears.message}
