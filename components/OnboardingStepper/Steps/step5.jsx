@@ -53,78 +53,44 @@ const Step5 = () => {
     updateStudyYearsField(startYear, endYear)
   }, []) // Only run once on mount
 
-  const handleEducationLevelChange = (value) => {
-    setValue('educationLevel', value, { shouldValidate: true })
-  }
-
+  const handleEducationLevelChange = (value) => setValue('educationLevel', value, { shouldValidate: true })
+  
   const handleAddCertification = () => {
     if (newCertification.trim() && !certifications.includes(newCertification.trim())) {
-      const updatedCertifications = [...certifications, newCertification.trim()]
-      setValue('certifications', updatedCertifications, { shouldValidate: true })
+      setValue('certifications', [...certifications, newCertification.trim()], { shouldValidate: true })
       setNewCertification('')
     }
   }
-
+  
   const handleRemoveCertification = (certToRemove) => {
-    const updatedCertifications = certifications.filter(cert => cert !== certToRemove)
-    setValue('certifications', updatedCertifications, { shouldValidate: true })
+    setValue('certifications', certifications.filter(cert => cert !== certToRemove), { shouldValidate: true })
   }
+  
+  const handleKeyPress = (e) => e.key === 'Enter' && (e.preventDefault(), handleAddCertification())
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleAddCertification()
-    }
-  }
-
-  // Year selection handlers
   const years = Array.from({ length: currentYear - 1960 + 1 }, (_, i) => currentYear - i)
-
+  
+  const updateStudyYearsField = (start, end) => {
+    if (!start) return setValue('studyYears', '', { shouldValidate: true })
+    const dateRange = end && end !== start ? `${start} - ${end}` : start
+    setValue('studyYears', dateRange, { shouldValidate: true })
+  }
+  
   const handleStartYearChange = (year) => {
     setStartYear(year)
-    // Clear end year if it's before the new start year
-    if (endYear && parseInt(endYear) < parseInt(year)) {
-      setEndYear('')
-    }
+    if (endYear && parseInt(endYear) < parseInt(year)) setEndYear('')
     updateStudyYearsField(year, endYear)
   }
-
+  
   const handleEndYearChange = (year) => {
     setEndYear(year)
     updateStudyYearsField(startYear, year)
   }
+  
+  const getAvailableEndYears = () => startYear ? years.filter(year => year >= parseInt(startYear)) : []
 
-  const updateStudyYearsField = (start, end) => {
-    if (!start) {
-      setValue('studyYears', '', { shouldValidate: true })
-      return
-    }
-    
-    let dateRange = start
-    if (end && end !== start) {
-      dateRange = `${start} - ${end}`
-    }
-    
-    setValue('studyYears', dateRange, { shouldValidate: true })
-  }
-
-  const getYearRangeDisplayText = () => {
-    if (endYear && endYear !== startYear) return `${startYear} - ${endYear}`
-    return startYear
-  }
-
-  const getAvailableEndYears = () => {
-    if (!startYear) return []
-    return years.filter(year => year >= parseInt(startYear))
-  }
-
-  const requiresInstitution = () => {
-    return !['self-taught', 'other'].includes(educationLevel)
-  }
-
-  const requiresDegree = () => {
-    return ['associate', 'bachelor', 'master', 'doctorate'].includes(educationLevel)
-  }
+  const requiresInstitution = () => !['self-taught', 'other'].includes(educationLevel)
+  const requiresDegree = () => ['associate', 'bachelor', 'master', 'doctorate'].includes(educationLevel)
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto">

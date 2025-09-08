@@ -121,3 +121,63 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Animation utilities specifically for sheet content only */
+  
+  /* Sheet content animations - scoped to avoid conflicts */
+  [data-slot="sheet-content"][data-state="open"] {
+    animation: slide-in-from-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  [data-slot="sheet-content"][data-state="closed"] {
+    animation: slide-out-to-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  /* Tailwind conditional class utilities */
+  .animate-in {
+    animation-fill-mode: forwards;
+  }
+  
+  .animate-out {
+    animation-fill-mode: forwards;
+  }
+  
+  .slide-in-from-right {
+    animation-name: slide-in-from-right;
+  }
+  
+  .slide-out-to-right {
+    animation-name: slide-out-to-right;
+  }
+  
+  .duration-300 {
+    animation-duration: 0.3s;
+  }
+  
+  .duration-500 {
+    animation-duration: 0.5s;
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-to-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}

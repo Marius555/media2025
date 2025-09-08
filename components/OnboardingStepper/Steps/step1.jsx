@@ -8,6 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Users, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const USER_TYPES = [
+  {
+    id: "freelancer",
+    title: "Freelancer", 
+    description: "Offer your services and work on projects",
+    icon: Briefcase
+  },
+  {
+    id: "client",
+    title: "Client",
+    description: "Find and hire talented freelancers", 
+    icon: Users
+  }
+]
+
 const Step1 = () => {
   const { register, watch, setValue, formState: { errors } } = useFormContext()
   const selectedUserType = watch('userType')
@@ -26,71 +41,41 @@ const Step1 = () => {
       <RadioGroup 
         value={selectedUserType} 
         onValueChange={handleCardSelect}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 "
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
-        <div className="space-y-2">
-          <Label
-            htmlFor="freelancer"
-            className="cursor-pointer"
-          >
-            <Card className={cn(
-              "transition-all duration-200 hover:shadow-md cursor-pointer h-[200px] w-full relative p-6 flex flex-col justify-center",
-              selectedUserType === "freelancer" 
-                ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
-                : "hover:border-gray-300 shadow-sm"
-            )}>
-              <RadioGroupItem 
-                value="freelancer" 
-                id="freelancer"
-                {...register('userType')}
-                className="absolute top-4 right-4"
-              />
-              <div className="space-y-3">
-                <div className="flex items-center flex-col gap-3">
-                  <div className="p-4 rounded-full bg-primary/10 shrink-0">
-                    <Briefcase className="w-8 h-8 text-primary" />
+        {USER_TYPES.map((userType) => {
+          const Icon = userType.icon
+          const isSelected = selectedUserType === userType.id
+          
+          return (
+            <Label key={userType.id} htmlFor={userType.id} className="cursor-pointer">
+              <Card className={cn(
+                "transition-all duration-200 hover:shadow-md cursor-pointer h-[200px] relative p-6 flex flex-col justify-center",
+                isSelected 
+                  ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
+                  : "hover:border-gray-300 shadow-sm"
+              )}>
+                <RadioGroupItem 
+                  value={userType.id}
+                  id={userType.id}
+                  {...register('userType')}
+                  className="absolute top-4 right-4"
+                />
+                <div className="space-y-3">
+                  <div className="flex items-center flex-col gap-3">
+                    <div className="p-4 rounded-full bg-primary/10 shrink-0">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-semibold">{userType.title}</h3>
                   </div>
-                  <h3 className="text-xl font-semibold">Freelancer</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed text-center">
+                    {userType.description}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed text-center">
-                  Offer your services and work on projects
-                </p>
-              </div>
-            </Card>
-          </Label>
-        </div>
-
-        <div className="space-y-2">
-          <Label
-            htmlFor="client"
-            className="cursor-pointer"
-          >
-            <Card className={cn(
-              "transition-all duration-200 hover:shadow-md cursor-pointer h-[200px] w-full relative p-6 flex flex-col justify-center",
-              selectedUserType === "client" 
-                ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary" 
-                : "hover:border-gray-300 shadow-sm"
-            )}>
-              <RadioGroupItem 
-                value="client" 
-                id="client"
-                {...register('userType')}
-                className="absolute top-4 right-4"
-              />
-              <div className="space-y-3">
-                <div className="flex items-center flex-col gap-3">
-                  <div className="p-4 rounded-full bg-primary/10 shrink-0">
-                    <Users className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Client</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed text-center">
-                  Find and hire talented freelancers
-                </p>
-              </div>
-            </Card>
-          </Label>
-        </div>
+              </Card>
+            </Label>
+          )
+        })}
       </RadioGroup>
 
       {errors.userType && (

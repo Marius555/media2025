@@ -62,41 +62,17 @@ const ClientStep3 = () => {
     { id: 'tiktok', label: 'TikTok', icon: Video }
   ]
 
-  const handleServiceToggle = (serviceId, checked) => {
-    let updatedServices = [...servicesNeeded]
-    
-    if (checked) {
-      if (!updatedServices.includes(serviceId)) {
-        updatedServices.push(serviceId)
-      }
-    } else {
-      updatedServices = updatedServices.filter(s => s !== serviceId)
-    }
-    
-    setValue('servicesNeeded', updatedServices, { shouldValidate: true })
+  const handleToggle = (fieldName, itemId, checked, currentArray) => {
+    const updated = checked 
+      ? currentArray.includes(itemId) ? currentArray : [...currentArray, itemId]
+      : currentArray.filter(item => item !== itemId)
+    setValue(fieldName, updated, { shouldValidate: true })
   }
 
-  const handlePlatformToggle = (platformId, checked) => {
-    let updatedPlatforms = [...platformFocus]
-    
-    if (checked) {
-      if (!updatedPlatforms.includes(platformId)) {
-        updatedPlatforms.push(platformId)
-      }
-    } else {
-      updatedPlatforms = updatedPlatforms.filter(p => p !== platformId)
-    }
-    
-    setValue('platformFocus', updatedPlatforms, { shouldValidate: true })
-  }
-
-  const handleContentTypeChange = (value) => {
-    setValue('contentType', value, { shouldValidate: true })
-  }
-
-  const handleTimelineChange = (value) => {
-    setValue('timeline', value, { shouldValidate: true })
-  }
+  const handleServiceToggle = (serviceId, checked) => handleToggle('servicesNeeded', serviceId, checked, servicesNeeded)
+  const handlePlatformToggle = (platformId, checked) => handleToggle('platformFocus', platformId, checked, platformFocus)
+  const handleContentTypeChange = (value) => setValue('contentType', value, { shouldValidate: true })
+  const handleTimelineChange = (value) => setValue('timeline', value, { shouldValidate: true })
 
   return (
     <div className="space-y-6 w-full max-w-4xl mx-auto">

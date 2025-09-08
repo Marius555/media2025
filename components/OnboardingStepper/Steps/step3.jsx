@@ -50,7 +50,7 @@ const Step3 = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+      alert('Please select an image file (JPG, PNG, GIF, etc.)')
       return
     }
 
@@ -71,9 +71,19 @@ const Step3 = () => {
       setValue('profilePhotoFile', file, { shouldValidate: true })
       setValue('profilePhoto', file.name, { shouldValidate: true })
       
+      console.log(`Photo selected: ${file.name} (${Math.round(file.size / 1024)}KB)`)
+      
     } catch (error) {
       console.error('Error handling photo:', error)
       alert('Error processing photo. Please try again.')
+      
+      // Clean up on error
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview)
+        setPhotoPreview(null)
+      }
+      setValue('profilePhotoFile', null)
+      setValue('profilePhoto', '', { shouldValidate: true })
     } finally {
       setIsUploading(false)
     }

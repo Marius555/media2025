@@ -1,12 +1,43 @@
 "use client"
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Youtube, Instagram, Video, Monitor } from 'lucide-react'
+import { Youtube, Instagram, Video, Monitor, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// Custom checkbox component that matches shadcn/ui styling
+const CustomCheckbox = ({ id, checked, onChange, className }) => {
+  return (
+    <div className="relative">
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={onChange}
+        className={cn(
+          // Base styling matching shadcn/ui checkbox
+          "peer size-4 shrink-0 rounded-[4px] border border-input bg-background shadow-xs transition-all duration-200 outline-none",
+          // Focus states
+          "focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring",
+          // Checked states
+          "checked:bg-primary checked:border-primary",
+          // Disabled states
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          // Hide default checkbox appearance
+          "appearance-none cursor-pointer",
+          className
+        )}
+      />
+      {/* Checkmark icon overlay */}
+      {checked && (
+        <Check className="absolute inset-0 w-3 h-3 m-auto text-primary-foreground pointer-events-none" />
+      )}
+    </div>
+  )
+}
 
 const Step2 = () => {
   const { register, watch, setValue, formState: { errors } } = useFormContext()
@@ -17,6 +48,20 @@ const Step2 = () => {
   
   const selectedPlatforms = watch('platforms') || []
   const selectedContentTypes = watch('contentTypes') || []
+
+  // Register form fields with React Hook Form
+  useEffect(() => {
+    register('platforms')
+    register('contentTypes')
+    
+    // Initialize with empty arrays if not set
+    if (!selectedPlatforms.length && !watch('platforms')) {
+      setValue('platforms', [], { shouldValidate: false })
+    }
+    if (!selectedContentTypes.length && !watch('contentTypes')) {
+      setValue('contentTypes', [], { shouldValidate: false })
+    }
+  }, [register, setValue])
   
   // For UI display, include 'other' and 'other-content' when selected
   const displayPlatforms = useMemo(() => {
@@ -149,12 +194,11 @@ const Step2 = () => {
                   }}
                 >
                   <div className="flex items-center space-x-3 w-full h-full">
-                    <input
-                      type="checkbox"
+                    <CustomCheckbox
                       id={platform.id}
                       checked={isChecked}
                       onChange={() => {}} // Controlled by card click
-                      className="w-4 h-4 rounded border-2 border-input bg-background text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 pointer-events-none"
+                      className="pointer-events-none"
                     />
                     <div className="flex items-center space-x-2">
                       <Icon className="w-5 h-5 text-primary" />
@@ -206,12 +250,11 @@ const Step2 = () => {
                   }}
                 >
                   <div className="flex items-center space-x-3 w-full h-full">
-                    <input
-                      type="checkbox"
+                    <CustomCheckbox
                       id={contentType.id}
                       checked={isChecked}
                       onChange={() => {}} // Controlled by card click
-                      className="w-4 h-4 rounded border-2 border-input bg-background text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 pointer-events-none"
+                      className="pointer-events-none"
                     />
                     <span className="font-medium">{contentType.label}</span>
                   </div>

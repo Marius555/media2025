@@ -18,7 +18,8 @@
       "mcp__appwrite__databases_list_attributes",
       "mcp__appwrite__databases_delete_attribute",
       "mcp__ide__getDiagnostics",
-      "WebSearch"
+      "WebSearch",
+      "Read(/C:\\Users\\wanma\\OneDrive - Dalo6116\\Desktop\\websites\\mediaApp2025\\app\\components\\OnboardingStepper\\Steps/**)"
     ],
     "deny": [],
     "ask": []

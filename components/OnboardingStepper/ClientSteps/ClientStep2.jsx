@@ -50,7 +50,7 @@ const ClientStep2 = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+      alert('Please select an image file (JPG, PNG, GIF, etc.)')
       return
     }
 

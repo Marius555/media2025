@@ -16,7 +16,7 @@ const page = async() => {
   
 
   return (
-    <div className="flex items-center justify-center bg-gray-50">
+    <div className="flex items-center justify-center">
       <ParentStepper userid={decryptedSession.payload.userId}/>
     </div>
   );

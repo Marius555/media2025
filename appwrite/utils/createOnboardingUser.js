@@ -91,6 +91,13 @@ export const createOnboardingUser = async (data) => {
         firstName: data.firstName || "",
         lastName: data.lastName || "",
         profilePhoto: data.profilePhoto || "",
+        // Default marketplace fields for new users
+        rating: data.rating || 0,
+        reviewCount: data.reviewCount || 0,
+        hourlyRate: data.hourlyRate || 0,
+        responseTime: data.responseTime || "Within 24 hours",
+        completedProjects: data.completedProjects || 0,
+        portfolioHighlights: data.portfolioHighlights || [],
         status: 'pending',
         completedAt: null,
       }
@@ -247,36 +254,82 @@ export const completeOnboarding = async (rowId) => {
 }
 
 export const uploadProfilePhoto = async (file) => {
+  // Validate input
+  if (!file) {
+    return { success: false, error: 'No file provided for upload' }
+  }
+
+  // Validate file type
+  if (!file.type?.startsWith('image/')) {
+    return { success: false, error: 'File must be an image' }
+  }
+
+  // Validate file size (5MB max)
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxSize) {
+    return { success: false, error: 'File size must be less than 5MB' }
+  }
+
+  // Check if storage ID is configured
+  if (!process.env.STORAGE_ID) {
+    console.error('STORAGE_ID environment variable is not configured')
+    return { success: false, error: 'Storage not configured' }
+  }
+
   const { storage } = await createSessionClient()
   if (!storage) {
     return { success: false, error: 'Failed to initialize Appwrite storage client' }
   }
 
   try {
-    // Create a unique file ID
-    const fileId = ID.unique()
+    // Create a unique file ID with descriptive prefix
+    const fileId = `profile_${ID.unique()}`
+    
+    console.log(`Uploading file: ${file.name} (${file.size} bytes) to bucket: ${process.env.STORAGE_ID}`)
     
     // Upload file to Appwrite Storage
-    // You'll need to create a bucket for profile photos in Appwrite Console first
     const result = await storage.createFile(
-      process.env.STORAGE_ID, // Create this bucket in Appwrite Console
+      process.env.STORAGE_ID,
       fileId,
       file
     )
+    
+    console.log('File uploaded successfully:', result)
     
     // Generate the file URL manually
     const fileUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.STORAGE_ID}/files/${result.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`
     
     return {
       success: true,
-      data: { ...result, url: fileUrl },
+      data: { 
+        ...result, 
+        url: fileUrl,
+        originalName: file.name,
+        size: file.size,
+        type: file.type
+      },
       message: 'Profile photo uploaded successfully'
     }
   } catch (error) {
     console.error('Error uploading profile photo:', error)
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to upload profile photo'
+    
+    if (error.code === 401) {
+      errorMessage = 'Not authorized to upload files. Please check your permissions.'
+    } else if (error.code === 404) {
+      errorMessage = 'Storage bucket not found. Please check your configuration.'
+    } else if (error.code === 413) {
+      errorMessage = 'File is too large. Maximum size is 5MB.'
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
     return {
       success: false,
-      error: error.message || 'Failed to upload profile photo'
+      error: errorMessage,
+      details: error.code ? `Error code: ${error.code}` : undefined
     }
   }
 }

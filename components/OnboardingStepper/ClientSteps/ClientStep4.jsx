@@ -26,14 +26,6 @@ import { cn } from '@/lib/utils'
 const ClientStep4 = () => {
   const { register, control, formState: { errors } } = useFormContext()
 
-  // Manually register fields to ensure they're recognized by React Hook Form
-  useEffect(() => {
-    register('budgetRange', { value: '' })
-    register('projectGoals', { value: [] })
-    register('communicationStyle', { value: '' })
-    register('additionalRequirements', { value: '' })
-  }, [register])
-
   const budgetOptions = [
     { value: 'micro', label: '$25 - $100', description: 'Quick edits, simple thumbnails', icon: DollarSign },
     { value: 'small', label: '$100 - $500', description: 'Professional editing, multiple revisions', icon: DollarSign },
@@ -139,6 +131,14 @@ const ClientStep4 = () => {
                     const Icon = goal.icon
                     const isSelected = field.value?.includes(goal.id) || false
                     
+                    const handleToggle = (checked) => {
+                      const current = field.value || []
+                      const updated = checked 
+                        ? current.includes(goal.id) ? current : [...current, goal.id]
+                        : current.filter(id => id !== goal.id)
+                      field.onChange(updated)
+                    }
+                    
                     return (
                       <Card key={goal.id} className={cn(
                         "transition-all duration-200 cursor-pointer p-4 hover:shadow-md h-full",
@@ -146,26 +146,12 @@ const ClientStep4 = () => {
                           ? "ring-2 ring-primary ring-offset-0 shadow-none border-primary bg-primary/5" 
                           : "hover:border-gray-300 shadow-sm"
                       )} style={{width: '-webkit-fill-available'}}>
-                        <Label 
-                          htmlFor={`goal-${goal.id}`}
-                          className="cursor-pointer block h-full"
-                        >
+                        <Label htmlFor={`goal-${goal.id}`} className="cursor-pointer block h-full">
                           <div className="flex items-start space-x-3 h-full">
                             <Checkbox
                               id={`goal-${goal.id}`}
                               checked={isSelected}
-                              onCheckedChange={(checked) => {
-                                const updatedGoals = field.value ? [...field.value] : []
-                                if (checked && !updatedGoals.includes(goal.id)) {
-                                  updatedGoals.push(goal.id)
-                                } else if (!checked) {
-                                  const index = updatedGoals.indexOf(goal.id)
-                                  if (index > -1) {
-                                    updatedGoals.splice(index, 1)
-                                  }
-                                }
-                                field.onChange(updatedGoals)
-                              }}
+                              onCheckedChange={handleToggle}
                               className="mt-1 flex-shrink-0"
                             />
                             <div className="flex-1 min-w-0 flex flex-col">
