@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { loginResolver } from "@/resolvers/loginResolver"
 import { LoginUser } from "@/appwrite/utils/loginUser"
 import { AnimateErrors } from "@/components/animateErrors"
+import PasswordInput from "@/components/passwordInput"
 
 export function LoginForm({
   className,
@@ -68,14 +69,13 @@ export function LoginForm({
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
             <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
               Forgot your password?
             </a>
           </div>
-          <Input 
-            id="password" 
-            type="password" 
+          <PasswordInput 
+            label="Password"
+            showStrengthIndicator={false}
             {...register("password")}
             className={errors.password ? "border-red-500" : ""}
           />

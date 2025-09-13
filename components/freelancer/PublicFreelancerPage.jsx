@@ -1,14 +1,15 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 import PublicFreelancerCard from './publicFreelancerCard'
-import FreelancerProfileModal from './FreelancerProfileModal'
 import { getFreelancers } from '@/appwrite/utils/getFreelancers'
 import { PLATFORM_CATEGORIES } from '@/lib/platform-utils'
 import { Filter, ArrowUpDown, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const PublicFreelancerPage = () => {
   const [freelancers, setFreelancers] = useState([])
@@ -16,11 +17,10 @@ const PublicFreelancerPage = () => {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
-  const [selectedFreelancer, setSelectedFreelancer] = useState(null)
-  const [showProfileModal, setShowProfileModal] = useState(false)
+  const router = useRouter()
 
   const platformTabs = [
-    { key: 'all', label: 'All Freelancers', icon: null },
+    { key: 'all', label: 'Freelancers', icon: null },
     { key: 'youtube', ...PLATFORM_CATEGORIES.youtube },
     { key: 'tiktok', ...PLATFORM_CATEGORIES.tiktok },
     { key: 'instagram', ...PLATFORM_CATEGORIES.instagram },
@@ -70,8 +70,11 @@ const PublicFreelancerPage = () => {
   }
 
   const handleViewProfile = (freelancer) => {
-    setSelectedFreelancer(freelancer)
-    setShowProfileModal(true)
+    router.push(`/freelancer/${freelancer.$id}`)
+  }
+
+  const handleOpenReviews = (freelancer) => {
+    router.push(`/freelancer/${freelancer.$id}?tab=reviews`)
   }
 
   const handleContact = (freelancer) => {
@@ -80,10 +83,12 @@ const PublicFreelancerPage = () => {
     // For now, you could open an email client or show a contact form
   }
 
-  const handleCloseProfileModal = () => {
-    setShowProfileModal(false)
-    setSelectedFreelancer(null)
+  const handleRateFreelancer = (freelancer, rating) => {
+    // TODO: Implement rating submission to backend
+    console.log('Rating freelancer:', freelancer.firstName, freelancer.lastName, 'with', rating, 'stars')
+    // You can implement API call here to save the rating
   }
+
   console.log('Freelancers:', freelancers)
 
   if (error) {
@@ -114,18 +119,43 @@ const PublicFreelancerPage = () => {
       {/* Tabs and Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full lg:w-auto">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          {/* Custom Animated TabsList */}
+          <div className="relative bg-muted text-muted-foreground inline-flex h-12 w-full lg:w-auto items-center justify-center rounded-lg p-1">
+            {/* Sliding background indicator */}
+            <div
+              className="absolute top-1 bg-background dark:bg-background border shadow-sm rounded-md h-10 z-0 transition-all duration-300"
+              style={{
+                left: `${2 + (platformTabs.findIndex(tab => tab.key === activeTab) * (100 / platformTabs.length))}%`,
+                width: `calc(${100 / platformTabs.length}% - 4px)`
+              }}
+            />
+            
+            {/* Tab Buttons */}
             {platformTabs.map((tab) => {
               const IconComponent = tab.icon
               return (
-                <TabsTrigger key={tab.key} value={tab.key} className="flex items-center gap-2">
-                  {IconComponent && <IconComponent className="w-4 h-4" />}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                </TabsTrigger>
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabChange(tab.key)}
+                  className={cn(
+                    "relative z-10 flex-1 flex items-center justify-center gap-1 sm:gap-2 h-10 px-2 sm:px-4 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 min-h-[44px]",
+                    activeTab === tab.key 
+                      ? "text-foreground" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {IconComponent && <IconComponent className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  <span className="hidden md:inline">{tab.label}</span>
+                  <span className="md:hidden">
+                    {tab.key === 'all' ? 'All' :
+                     tab.key === 'youtube' ? 'YT' :
+                     tab.key === 'tiktok' ? 'TT' :
+                     tab.key === 'instagram' ? 'IG' : 'Other'}
+                  </span>
+                </button>
               )
             })}
-          </TabsList>
+          </div>
         </Tabs>
 
         {/* Sort Controls */}
@@ -183,6 +213,8 @@ const PublicFreelancerPage = () => {
                     freelancer={freelancer}
                     onViewProfile={handleViewProfile}
                     onContact={handleContact}
+                    onOpenReviews={handleOpenReviews}
+                    onRateFreelancer={handleRateFreelancer}
                   />
                 ))}
               </div>
@@ -191,13 +223,6 @@ const PublicFreelancerPage = () => {
         ))}
       </Tabs>
 
-      {/* Profile Modal */}
-      <FreelancerProfileModal
-        freelancer={selectedFreelancer}
-        isOpen={showProfileModal}
-        onClose={handleCloseProfileModal}
-        onContact={handleContact}
-      />
     </div>
   )
 }

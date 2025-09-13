@@ -1,19 +1,19 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { StarRating } from '@/components/ui/star-rating'
-import { Clock, CheckCircle2 } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { 
   getPlatformInfo, 
-  getTopSkills, 
-  formatPrice, 
-  getProjectCountText 
+  formatPrice,
+  getAllPlatformIcons,
 } from '@/lib/platform-utils'
 import { getConsistentAvatar } from '@/lib/avatar-utils'
 
-const PublicFreelancerCard = ({ freelancer, onViewProfile, onContact }) => {
+const PublicFreelancerCard = ({ freelancer, onViewProfile, onOpenReviews, onRateFreelancer }) => {
+  const [userRating, setUserRating] = useState(0)
+  const [hoverRating, setHoverRating] = useState(0)
+  const [hasUserRated, setHasUserRated] = useState(false)
   if (!freelancer) {
     return null
   }
@@ -23,20 +23,22 @@ const PublicFreelancerCard = ({ freelancer, onViewProfile, onContact }) => {
     lastName = '',
     profilePhoto = '',
     platforms = [],
-    rating = 0,
-    reviewCount = 0,
     hourlyRate = 0,
-    responseTime = 'Within 24 hours',
-    completedProjects = 0
+    description = '',
   } = freelancer
 
   const displayName = `${firstName} ${lastName}`.trim() || 'Anonymous Freelancer'
   const avatarInfo = getConsistentAvatar({ profilePhoto, firstName, lastName }, 64)
-  console.log('Avatar Info:', avatarInfo) // Debugging line
-  
   const platformInfo = getPlatformInfo(platforms)
-  const topSkills = getTopSkills(freelancer, 3)
+  const allPlatformIcons = getAllPlatformIcons(platforms)
   const PlatformIcon = platformInfo.icon
+  
+  const truncateDescription = (text, maxLength = 120) => {
+    if (!text || text.length <= maxLength) return text
+    return text.substring(0, maxLength).trim() + '...'
+  }
+  
+  const truncatedDescription = truncateDescription(description)
 
   const handleViewProfile = () => {
     if (onViewProfile) {
@@ -44,102 +46,125 @@ const PublicFreelancerCard = ({ freelancer, onViewProfile, onContact }) => {
     }
   }
 
-  const handleContact = () => {
-    if (onContact) {
-      onContact(freelancer)
+  const handleOpenReviews = (e) => {
+    e.stopPropagation()
+    if (onOpenReviews) {
+      onOpenReviews(freelancer)
     }
   }
 
+  const handleUserRating = (rating) => {
+    setUserRating(rating)
+    setHasUserRated(true)
+    if (onRateFreelancer) {
+      onRateFreelancer(freelancer, rating)
+    }
+  }
+
+
   return (
-    <Card className="w-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
-      <CardContent className="p-6">
-        {/* Header with Avatar and Platform Badge */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-16 h-16 ring-2 ring-offset-2 ring-primary/20 ">
+    <Card className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white border-0 rounded-3xl overflow-hidden w-full">
+      {/* Header Section with Primary Background */}
+      <div className="relative h-32 bg-gradient-to-br from-primary to-primary/80 rounded-t-3xl">
+        {/* Platform Icons */}
+        <div className="absolute top-4 right-4 flex gap-1">
+          {allPlatformIcons.slice(0, 4).map((platform, index) => {
+            const IconComponent = platform.icon
+            return (
+              <div key={index} className="bg-white/20 backdrop-blur-sm p-2 rounded-lg">
+                <IconComponent className="w-4 h-4 text-white" />
+              </div>
+            )
+          })}
+        </div>
+        
+        {/* Overlapping Avatar */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-10">
+          <div className="relative">
+            <Avatar className="w-20 h-20 border-4 border-white shadow-lg">
               <AvatarImage src={avatarInfo.url} alt={displayName} />
-              <AvatarFallback className="text-lg font-semibold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground ">
-                
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-medium text-lg">
+                {avatarInfo.initials}
               </AvatarFallback>
             </Avatar>
-            
-            <div>
-              <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
-                {displayName}
-              </h3>
-              {rating > 0 && (
-                <StarRating 
-                  rating={rating} 
-                  reviewCount={reviewCount} 
-                  size="sm" 
-                  className="mt-1"
-                />
-              )}
-            </div>
-          </div>
-          
-          {/* Platform Badge */}
-          <div className="flex items-center gap-1">
-            <div className={`p-2 rounded-lg ${platformInfo.bgLight}`}>
-              <PlatformIcon className={`w-4 h-4 ${platformInfo.textColor}`} />
-            </div>
-            <Badge variant="secondary" className="text-xs font-medium">
-              {platformInfo.label}
-            </Badge>
           </div>
         </div>
+      </div>
 
-        {/* Price */}
+      {/* Content Section */}
+      <CardContent className="pt-12 pb-6 px-6 text-center">
+        {/* Name and Title */}
         <div className="mb-4">
-          <p className="text-lg font-semibold text-primary">
-            {formatPrice(hourlyRate)}
+          <h3 className="text-xl font-bold text-gray-900 mb-1">
+            {displayName}
+          </h3>
+          <p className="text-gray-500 text-sm">
+            Content Creator
           </p>
         </div>
 
-        {/* Skills */}
-        {topSkills.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1">
-              {topSkills.map((skill, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {skill}
-                </Badge>
+        {/* User Rating Section - Moved up */}
+        <div className="text-center mb-6">
+          <div className="text-sm font-medium mb-2 text-gray-700">Rate this freelancer:</div>
+          <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 cursor-pointer transition-colors ${
+                    star <= (hoverRating || userRating)
+                      ? 'fill-primary text-primary'
+                      : 'text-gray-300 hover:text-primary'
+                  }`}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => handleUserRating(star)}
+                />
               ))}
             </div>
+            {hasUserRated && (
+              <span className="text-xs text-green-600 font-medium">Thanks!</span>
+            )}
+          </div>
+        </div>
+
+        {/* Platform Content Type & Description */}
+        <div className="mb-6">
+          {/* Platform Tags */}
+          <div className="flex flex-wrap justify-center gap-2 mb-3">
+            {allPlatformIcons.map((platform, index) => (
+              <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs">
+                <platform.icon className="w-3 h-3" />
+                <span>{platform.label}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Description */}
+          {truncatedDescription && (
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {truncatedDescription}
+            </p>
+          )}
+        </div>
+
+        {/* Price */}
+        {formatPrice(hourlyRate) && (
+          <div className="mb-6">
+            <div className="text-2xl font-bold text-gray-900">
+              {formatPrice(hourlyRate)}
+            </div>
+            <div className="text-sm text-gray-500">starting price</div>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="space-y-2 mb-6">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
-            <span>{getProjectCountText(completedProjects)}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="w-4 h-4 text-blue-600" />
-            <span>Responds {responseTime.toLowerCase()}</span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            onClick={handleViewProfile}
-          >
-            View Profile
-          </Button>
-          <Button 
-            size="sm" 
-            className="flex-1"
-            onClick={handleContact}
-          >
-            Contact
-          </Button>
-        </div>
+        {/* Action Button */}
+        <Button 
+          onClick={handleViewProfile}
+          className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full"
+        >
+          View Profile
+        </Button>
       </CardContent>
     </Card>
   )

@@ -28,34 +28,225 @@ import { LogoutUser } from '@/appwrite/utils/logoutUser'
 const NavBar = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false)
+  const [lastCookieState, setLastCookieState] = useState(null)
+  const [lastAppCookieState, setLastAppCookieState] = useState(null)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
 
-  // Check authentication status on mount
+  // Cookie monitoring utilities
+  const getLocalSessionCookie = () => {
+    if (typeof document === 'undefined') return null
+    const cookies = document.cookie.split(';')
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'localSession') {
+        return value || null
+      }
+    }
+    return null
+  }
+
+  const getAppSessionCookie = () => {
+    if (typeof document === 'undefined') return null
+    const cookies = document.cookie.split(';')
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'appSession') {
+        return value || null
+      }
+    }
+    return null
+  }
+
+  const deleteCookie = (name) => {
+    if (typeof document === 'undefined') return
+    // Delete with multiple path configurations to ensure deletion
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC;`
+  }
+
+  // Synchronize cookies - if one exists without the other, delete both
+  const syncCookies = () => {
+    const localCookie = getLocalSessionCookie()
+    const appCookie = getAppSessionCookie()
+    
+    // Both should exist together or both should be missing
+    const localExists = localCookie !== null
+    const appExists = appCookie !== null
+    
+    if (localExists !== appExists) {
+      console.log('Cookie mismatch detected:', { localExists, appExists })
+      
+      // Delete both cookies to maintain consistency
+      if (localExists) {
+        console.log('Deleting localSession cookie due to missing appSession')
+        deleteCookie('localSession')
+      }
+      if (appExists) {
+        console.log('Deleting appSession cookie due to missing localSession')
+        deleteCookie('appSession')
+      }
+      
+      return true // Indicates cookies were out of sync
+    }
+    
+    return false // Cookies are in sync
+  }
+
+  // Check if either cookie was deleted or if they're out of sync
+  const checkCookieDeletion = () => {
+    const currentLocalCookie = getLocalSessionCookie()
+    const currentAppCookie = getAppSessionCookie()
+    
+    const localWasDeleted = lastCookieState !== null && currentLocalCookie === null
+    const appWasDeleted = lastAppCookieState !== null && currentAppCookie === null
+    const cookiesOutOfSync = syncCookies()
+    
+    setLastCookieState(currentLocalCookie)
+    setLastAppCookieState(currentAppCookie)
+    
+    return localWasDeleted || appWasDeleted || cookiesOutOfSync
+  }
+
+  // Track hydration status
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const result = await getCurrentUser()
-        setUser(result.success ? result.user : null)
-      } catch (error) {
+    setIsHydrated(true)
+  }, [])
+
+  // Check authentication status
+  const checkAuthStatus = async (skipLoadingState = false) => {
+    if (isCheckingAuth) return // Prevent multiple simultaneous checks
+    
+    try {
+      if (!skipLoadingState) setIsCheckingAuth(true)
+      
+      // Check both cookies and sync them
+      const currentLocalCookie = getLocalSessionCookie()
+      const currentAppCookie = getAppSessionCookie()
+      setLastCookieState(currentLocalCookie)
+      setLastAppCookieState(currentAppCookie)
+      
+      // Synchronize cookies first
+      syncCookies()
+      
+      // After sync, check if both cookies exist
+      const finalLocalCookie = getLocalSessionCookie()
+      const finalAppCookie = getAppSessionCookie()
+      
+      if (!finalLocalCookie || !finalAppCookie) {
+        // Either cookie is missing, user should be logged out
+        if (user) {
+          console.log('Authentication cookies missing or invalid:', { 
+            localSession: !!finalLocalCookie, 
+            appSession: !!finalAppCookie 
+          })
+        }
         setUser(null)
-      } finally {
         setLoading(false)
+        return
+      }
+      
+      // Both cookies exist, check with Appwrite
+      const result = await getCurrentUser()
+      setUser(result.success ? result.user : null)
+    } catch (error) {
+      console.error('Auth check error:', error)
+      setUser(null)
+    } finally {
+      setLoading(false)
+      if (!skipLoadingState) setIsCheckingAuth(false)
+    }
+  }
+
+  // Initial authentication check on mount
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
+
+  // Add window focus and visibility change listeners for auth sync
+  useEffect(() => {
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        // Check for cookie deletion first, then full auth if needed
+        if (checkCookieDeletion() && user) {
+          console.log('Cookie deleted detected on focus, logging out user')
+          setUser(null)
+        } else {
+          checkAuthStatus(true) // Skip loading state for background checks
+        }
       }
     }
 
-    checkAuthStatus()
-  }, [])
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Check for cookie deletion first, then full auth if needed
+        if (checkCookieDeletion() && user) {
+          console.log('Cookie deleted detected on visibility change, logging out user')
+          setUser(null)
+        } else {
+          checkAuthStatus(true)
+        }
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [isCheckingAuth, user, lastCookieState, lastAppCookieState])
+
+  // Cookie-specific polling (every 5 seconds when user is logged in)
+  useEffect(() => {
+    if (!user) return // Only poll when user is logged in
+    
+    const cookieInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        if (checkCookieDeletion()) {
+          console.log('Cookie deletion/mismatch detected via polling, logging out user')
+          setUser(null)
+        }
+      }
+    }, 5000) // 5 seconds - more frequent for cookie detection
+
+    return () => clearInterval(cookieInterval)
+  }, [user, lastCookieState, lastAppCookieState])
+
+  // Periodic authentication check (every 60 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !loading) {
+        checkAuthStatus(true)
+      }
+    }, 60000) // 60 seconds
+
+    return () => clearInterval(interval)
+  }, [loading, isCheckingAuth])
 
   // Handle logout
   const handleLogout = async () => {
     try {
       await LogoutUser()
+      
+      // Also delete cookies client-side to ensure immediate cleanup
+      deleteCookie('localSession')
+      deleteCookie('appSession')
+      
       setUser(null)
       router.push('/')
       router.refresh()
     } catch (error) {
       console.error('Logout error:', error)
+      
+      // Even if server logout fails, clean up client-side
+      deleteCookie('localSession')
+      deleteCookie('appSession')
+      setUser(null)
     }
   }
 
@@ -72,21 +263,43 @@ const NavBar = () => {
   ]
 
   // Enhanced Mobile sheet menu component
-  const MobileMenu = () => (
-    <Sheet>
-      <SheetTrigger asChild>
+  const MobileMenu = () => {
+    // Don't render interactive elements until hydrated
+    if (!isHydrated) {
+      return (
         <Button 
           variant="ghost" 
           size="sm" 
           className="group md:hidden relative h-9 w-9 rounded-lg transition-all duration-300 hover:bg-secondary"
+          disabled
         >
           <Menu className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:text-primary" />
           <span className="sr-only">Toggle menu</span>
         </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-80 bg-background/95 backdrop-blur-xl border-l border-border/50">
+      )
+    }
+
+    return (
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="group md:hidden relative h-9 w-9 rounded-lg transition-all duration-300 hover:bg-secondary"
+          >
+            <Menu className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:text-primary" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent 
+          side="right" 
+          className="w-80 bg-background/95 backdrop-blur-xl border-l border-border/50"
+          aria-labelledby="mobile-menu-title"
+          aria-describedby="mobile-menu-description"
+        >
         <SheetHeader>
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <SheetTitle id="mobile-menu-title" className="sr-only">Navigation Menu</SheetTitle>
+          <p id="mobile-menu-description" className="sr-only">Mobile navigation menu with account options</p>
         </SheetHeader>
         
         <div className="px-6 pb-6 space-y-6">
@@ -176,7 +389,8 @@ const NavBar = () => {
         </div>
       </SheetContent>
     </Sheet>
-  )
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">
@@ -317,7 +531,9 @@ const NavBar = () => {
           </div>
 
           {/* Mobile menu */}
-          <MobileMenu />
+          <div suppressHydrationWarning>
+            <MobileMenu />
+          </div>
         </div>
       </div>
     </header>

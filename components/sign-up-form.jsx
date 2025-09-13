@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { signupResolver } from "@/resolvers/signupResolver"
 import { createUser } from "@/appwrite/utils/createUser"
 import { AnimateErrors } from "@/components/animateErrors"
+import PasswordInput from "@/components/passwordInput"
 
 export function SignUpForm({
   className,
@@ -20,6 +21,7 @@ export function SignUpForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: signupResolver,
@@ -29,6 +31,9 @@ export function SignUpForm({
       confirmPassword: "",
     },
   })
+
+  // Watch the password field value for strength indicator
+  const passwordValue = watch("password")
 
   const onSubmit = async (data) => {
     setMessage("")
@@ -68,12 +73,10 @@ export function SignUpForm({
           <AnimateErrors error={errors.email?.message} variant="field" />
         </div>
         <div className="grid gap-3">
-          <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
-          </div>
-          <Input 
-            id="password" 
-            type="password" 
+          <PasswordInput 
+            label="Password"
+            showStrengthIndicator={true}
+            currentValue={passwordValue}
             {...register("password")}
             className={errors.password ? "border-red-500" : ""}
           />
